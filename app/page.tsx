@@ -21,7 +21,10 @@ export default function Home() {
 
         {/* Loading Overlay - Splits to reveal content underneath */}
         {!isLoadingComplete && (
-          <div className="fixed inset-0 z-50 pointer-events-none">
+          <div 
+            className="fixed inset-0 z-[9999] pointer-events-none transition-opacity duration-300"
+            style={{ opacity: 1 }}
+          >
             <SynapseLoading onComplete={handleLoadingComplete} />
           </div>
         )}

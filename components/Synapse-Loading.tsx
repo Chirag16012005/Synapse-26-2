@@ -7,7 +7,7 @@ interface SynapseLoadingProps {
 
 export default function SynapseLoading({ onComplete }: SynapseLoadingProps) {
     return (
-        <div className="fixed inset-0 w-full h-full overflow-visible">
+        <div className="absolute inset-0 w-full h-full overflow-visible">
             <JokerSliding onComplete={onComplete} autoPlay={true} />
         </div>
     );
