@@ -46,25 +46,20 @@ export default function JokerSliding({
 
       // Main split animation timeline
       const timeline = gsap.timeline({
-        delay: delay + 1.0, // Slightly longer wait for smoother transition
+        delay: delay + 1.0,
         defaults: { ease: "expo.inOut", force3D: true },
         onComplete: () => {
           setIsAnimating(false);
-          // Smooth fade out with better timing
-          gsap.delayedCall(0.3, () => {
-            if (containerRef.current) {
-              gsap.to(containerRef.current, {
-                opacity: 0,
-                duration: 0.5,
-                ease: "expo.out",
-                force3D: true,
-                onComplete: () => {
-                  onComplete?.();
-                },
-              });
-            } else {
+          // Smooth fade out after split - slightly delayed for better visual flow
+          gsap.to(containerRef.current, {
+            opacity: 0,
+            duration: 0.8,
+            ease: "power2.out",
+            force3D: true,
+            delay: 0.2,
+            onComplete: () => {
               onComplete?.();
-            }
+            },
           });
         },
       });
@@ -114,21 +109,16 @@ export default function JokerSliding({
         defaults: { ease: "expo.inOut", force3D: true },
         onComplete: () => {
           setIsAnimating(false);
-          // Smooth fade out
-          gsap.delayedCall(0.3, () => {
-            if (containerRef.current) {
-              gsap.to(containerRef.current, {
-                opacity: 0,
-                duration: 0.5,
-                ease: "expo.out",
-                force3D: true,
-                onComplete: () => {
-                  onComplete?.();
-                },
-              });
-            } else {
+          // Smooth fade out after split - slightly delayed for better visual flow
+          gsap.to(containerRef.current, {
+            opacity: 0,
+            duration: 0.8,
+            ease: "power2.out",
+            force3D: true,
+            delay: 0.2,
+            onComplete: () => {
               onComplete?.();
-            }
+            },
           });
         },
       });
