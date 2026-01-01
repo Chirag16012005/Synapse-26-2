@@ -16,6 +16,7 @@ export default function JokerSection() {
     const leftTitleRef = useRef<HTMLDivElement>(null);
     const rightTitleRef = useRef<HTMLDivElement>(null);
     const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
+    const scrollHintRef = useRef<HTMLDivElement>(null);
 
     const generateViewportPath = useCallback(() => {
         if (typeof window === 'undefined') return '';
@@ -176,14 +177,19 @@ export default function JokerSection() {
                     }
                 }
             });
+            jokerTl.set(scrollHintRef.current, { opacity: 1 });
 
-            jokerTl.to({}, { duration: 0.5 });
+            jokerTl.to(scrollHintRef.current, {
+                opacity: 0,
+                duration: 0.8,
+                ease: "power2.out"
+            }, 0);
 
             jokerTl.to(leftTitle, {
                 y: -40,
                 duration: 2,
                 ease: "power2.out"
-            }, ">")
+            }, 0)
                 .to(rightTitle, {
                     y: 40,
                     duration: 2,
@@ -284,6 +290,22 @@ export default function JokerSection() {
         setupPaths();
     }, [setupPaths]);
 
+    useEffect(() => {
+        // subtle breathing animation (idle)
+        if (scrollHintRef.current) {
+            gsap.fromTo(
+                scrollHintRef.current,
+                { y: 0 },
+                {
+                    y: 10,
+                    duration: 1,
+                    ease: "power1.inOut",
+                    repeat: -1,
+                    yoyo: true,
+                }
+            );
+        }
+    })
     const cards = [
         { id: 'c1', name: 'Ace of Heart', image: '/Ace_Heart.png', day: 'Day 1', isRed: true },
         { id: 'c2', name: 'Ace of Clubs', image: '/Ace_Clubs.png', day: 'Day 2' },
@@ -309,7 +331,7 @@ export default function JokerSection() {
                         }}
                     >
                         <div
-                            className="door-title left-title absolute bottom-8 w-full font-joker text-[clamp(2.5rem,6vw,4.5rem)] tracking-[0.35em] text-black pointer-events-none will-change-transform text-right"
+                            className="door-title left-title absolute bottom-8 w-full font-joker text-[clamp(3rem,7vw,5rem)] tracking-[0.35em] text-black pointer-events-none will-change-transform text-right"
                             ref={leftTitleRef}
                         >
                             joker&apos;s
@@ -326,7 +348,7 @@ export default function JokerSection() {
                         }}
                     >
                         <div
-                            className="door-title right-title absolute bottom-8 w-full font-joker text-[clamp(2.5rem,6vw,4.5rem)] tracking-[0.35em] text-black pointer-events-none will-change-transform text-left pl-10"
+                            className="door-title right-title absolute bottom-8 w-full font-joker text-[clamp(3rem,7vw,5rem)] tracking-[0.35em] text-black pointer-events-none will-change-transform text-left pl-10"
                             ref={rightTitleRef}
                         >
                             realm
@@ -414,6 +436,14 @@ export default function JokerSection() {
                             ))}
                         </div>
                     </div>
+                </div>
+                <div
+                    ref={scrollHintRef}
+                    className="scroll-hint fixed bottom-8 left-1/2 -translate-x-1/2 z-50
+               text-black rotate-90 text-[clamp(20px,4vw,36px)]
+               tracking-[-0.3rem] opacity-0 select-none pointer-events-none"
+                >
+                    &gt;&gt;&gt;&gt;
                 </div>
             </div>
         </div>
