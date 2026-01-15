@@ -2,13 +2,21 @@
 
 import type React from "react"
 import { useState, useRef, type KeyboardEvent, type ClipboardEvent } from "react"
+import { useRouter } from "next/navigation"
 
 interface OtpBoxProps {
+  email: string
+  otpType?: "signup" | "recovery"
   goLogin: () => void
 }
 
-export default function OtpBox({ goLogin }: OtpBoxProps) {
+export default function OtpBox({ email, otpType = "signup", goLogin }: OtpBoxProps) {
+  const router = useRouter()
   const [otp, setOtp] = useState<string[]>(["", "", "", "", "", ""])
+  const [isLoading, setIsLoading] = useState(false)
+  const [isResending, setIsResending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
   const inputRefs = useRef<(HTMLInputElement | null)[]>([])
 
   const handleChange = (index: number, value: string) => {
@@ -18,6 +26,7 @@ export default function OtpBox({ goLogin }: OtpBoxProps) {
     const newOtp = [...otp]
     newOtp[index] = value
     setOtp(newOtp)
+    setError(null)
 
     if (value && index < 5) {
       inputRefs.current[index + 1]?.focus()
@@ -45,9 +54,88 @@ export default function OtpBox({ goLogin }: OtpBoxProps) {
     inputRefs.current[lastIndex]?.focus()
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log("OTP submitted:", otp.join(""))
+    setError(null)
+    setSuccess(null)
+
+    const otpCode = otp.join("")
+    if (otpCode.length !== 6) {
+      setError("Please enter the complete 6-digit code")
+      return
+    }
+
+    setIsLoading(true)
+
+    try {
+      const response = await fetch("/api/auth/verify-otp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          token: otpCode,
+          type: otpType,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Verification failed")
+      }
+
+      setSuccess("Email verified successfully! Redirecting...")
+
+      // Redirect based on verification type
+      setTimeout(() => {
+        if (otpType === "recovery") {
+          // For password recovery, they'll be redirected to update password page
+          router.push("/auth/update-password")
+        } else {
+          // For signup verification, redirect to user profile (user stays logged in)
+          router.push("/user-profile")
+        }
+      }, 1500)
+    } catch (err: any) {
+      setError(err.message || "An error occurred during verification")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleResend = async () => {
+    setError(null)
+    setSuccess(null)
+    setIsResending(true)
+
+    try {
+      const response = await fetch("/api/auth/resend-otp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          type: otpType,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to resend code")
+      }
+
+      setSuccess("Verification code resent successfully!")
+      setOtp(["", "", "", "", "", ""])
+      inputRefs.current[0]?.focus()
+    } catch (err: any) {
+      setError(err.message || "Failed to resend verification code")
+    } finally {
+      setIsResending(false)
+    }
   }
 
   return (
@@ -62,11 +150,25 @@ export default function OtpBox({ goLogin }: OtpBoxProps) {
         {/* Instructions */}
         <div className="mb-8 text-center">
           <p className="font-poppins text-sm text-white/80">
-            Enter the code from the SMS sent
+            Enter the code from the email sent
             <br />
-            to the email
+            to <span className="text-white font-medium">{email || "your email"}</span>
           </p>
         </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-md text-red-400 text-sm text-center">
+            {error}
+          </div>
+        )}
+
+        {/* Success Message */}
+        {success && (
+          <div className="p-3 bg-green-500/20 border border-green-500/50 rounded-md text-green-400 text-sm text-center">
+            {success}
+          </div>
+        )}
 
         {/* OTP Input Boxes */}
         <div className="mb-6 flex justify-center gap-[18px]">
@@ -83,7 +185,8 @@ export default function OtpBox({ goLogin }: OtpBoxProps) {
               onChange={(e) => handleChange(index, e.target.value)}
               onKeyDown={(e) => handleKeyDown(index, e)}
               onPaste={handlePaste}
-              className="h-[60px] w-[35px] md:w-[45px] lg:h-[95px] lg:w-[68px] rounded border border-white/70 bg-transparent text-center font-card text-3xl text-white transition-colors focus:border-white focus:outline-none"
+              disabled={isLoading}
+              className="h-[60px] w-[35px] md:w-[45px] lg:h-[95px] lg:w-[68px] rounded border border-white/70 bg-transparent text-center font-card text-3xl text-white transition-colors focus:border-white focus:outline-none disabled:opacity-50"
             />
           ))}
         </div>
@@ -92,25 +195,37 @@ export default function OtpBox({ goLogin }: OtpBoxProps) {
         <div className="mb-8 text-center">
           <button
             type="button"
-            className="font-poppins text-sm text-white underline hover:text-white/80 cursor-pointer"
+            onClick={handleResend}
+            disabled={isLoading || isResending}
+            className="font-poppins text-sm text-white underline hover:text-white/80 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Send the code again
+            {isResending ? "Sending..." : "Send the code again"}
           </button>
         </div>
 
         {/* Continue Button */}
         <button
           type="submit"
-          className="w-full rounded bg-white py-4 font-jqka text-2xl cursor-pointer text-black transition-colors hover:bg-white/90"
+          disabled={isLoading}
+          className="w-full rounded bg-white py-4 font-jqka text-2xl cursor-pointer text-black transition-colors hover:bg-white/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
         >
-          Continue
+          {isLoading ? (
+            <svg className="animate-spin h-6 w-6 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          ) : (
+            "Continue"
+          )}
         </button>
 
         {/* Back to login link */}
         <p className="mt-4 text-center">
           <button
             onClick={goLogin}
-            className="text-white/80 text-sm underline hover:text-white cursor-pointer"
+            disabled={isLoading}
+            type="button"
+            className="text-white/80 text-sm underline hover:text-white cursor-pointer disabled:opacity-50"
           >
             Back to login
           </button>

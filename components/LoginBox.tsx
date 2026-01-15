@@ -3,6 +3,7 @@
 import type React from "react"
 import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 interface LoginBoxProps {
   goRegister: () => void
@@ -10,15 +11,47 @@ interface LoginBoxProps {
 }
 
 export default function LoginBox({ goRegister, goForgot }: LoginBoxProps) {
+  const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log("Login submitted:", formData)
+    setError(null)
+    setIsLoading(true)
+
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Login failed")
+      }
+
+      // Redirect based on admin status
+      if (data.isAdmin) {
+        router.push("/admin")
+      } else {
+        router.push("/")
+      }
+      router.refresh()
+    } catch (err: any) {
+      setError(err.message || "An error occurred during login")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -30,6 +63,13 @@ export default function LoginBox({ goRegister, goForgot }: LoginBoxProps) {
         the game
       </h1>
 
+      {/* Error Message */}
+      {error && (
+        <div className="mb-6 p-3 bg-red-500/20 border border-red-500/50 rounded-md text-red-400 text-sm text-center">
+          {error}
+        </div>
+      )}
+
       {/* Form */}
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
         {/* Email Input */}
@@ -39,8 +79,9 @@ export default function LoginBox({ goRegister, goForgot }: LoginBoxProps) {
             placeholder="E.g. rsharma@gmail.com"
             value={formData.email}
             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            className="w-full px-4 py-3.5 bg-transparent border border-white rounded-md text-white placeholder:text-white/40 focus:outline-none focus:border-white transition-all text-base font-poppins"
+            className="w-full px-4 py-3.5 bg-transparent border border-white rounded-md text-white placeholder:text-white/40 focus:outline-none focus:border-white transition-all text-base font-poppins disabled:opacity-50"
             required
+            disabled={isLoading}
           />
         </div>
 
@@ -53,13 +94,15 @@ export default function LoginBox({ goRegister, goForgot }: LoginBoxProps) {
             onChange={(e) =>
               setFormData({ ...formData, password: e.target.value })
             }
-            className="w-full px-4 py-3.5 bg-transparent border border-white rounded-md text-white placeholder:text-white/40 focus:outline-none focus:border-white transition-all text-base pr-12"
+            className="w-full px-4 py-3.5 bg-transparent border border-white rounded-md text-white placeholder:text-white/40 focus:outline-none focus:border-white transition-all text-base pr-12 disabled:opacity-50"
             required
+            disabled={isLoading}
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
             className="absolute right-4 top-1/2 -translate-y-1/2 text-white/60 hover:text-white transition-colors"
+            disabled={isLoading}
           >
             {showPassword ? (
               <svg
@@ -117,9 +160,17 @@ export default function LoginBox({ goRegister, goForgot }: LoginBoxProps) {
         {/* Continue Button */}
         <button
           type="submit"
-          className="w-full bg-white text-black py-3.5 rounded-md text-2xl hover:bg-white/90 transition-colors mt-2 font-jqka cursor-pointer"
+          disabled={isLoading}
+          className="w-full bg-white text-black py-3.5 rounded-md text-2xl hover:bg-white/90 transition-colors mt-2 font-jqka cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
         >
-          Continue
+          {isLoading ? (
+            <svg className="animate-spin h-6 w-6 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          ) : (
+            "Continue"
+          )}
         </button>
 
         {/* Sign Up Link */}
@@ -128,6 +179,7 @@ export default function LoginBox({ goRegister, goForgot }: LoginBoxProps) {
           <button
             onClick={goRegister}
             className="text-[#dc2626] hover:underline font-poppins font-medium cursor-pointer"
+            disabled={isLoading}
           >
             Sign up
           </button>
