@@ -13,6 +13,14 @@ type View = "login" | "register" | "otp" | "forgot"
 
 export default function AuthFlipPage() {
   const [view, setView] = useState<View>("login")
+  const [pendingEmail, setPendingEmail] = useState<string>("")
+  const [otpType, setOtpType] = useState<"signup" | "recovery">("signup")
+
+  const handleGoToOtp = (email: string, type: "signup" | "recovery" = "signup") => {
+    setPendingEmail(email)
+    setOtpType(type)
+    setView("otp")
+  }
 
   return (
     <div className="flex min-h-screen">
@@ -71,6 +79,8 @@ export default function AuthFlipPage() {
               )}
               {view === "otp" && (
                 <OtpBox
+                  email={pendingEmail}
+                  otpType={otpType}
                   goLogin={() => setView("login")}
                 />
               )}
@@ -84,14 +94,14 @@ export default function AuthFlipPage() {
               {view === "register" && (
                 <RegisterBox
                   goLogin={() => setView("login")}
-                  goOtp={() => setView("otp")}
+                  goOtp={(email: string) => handleGoToOtp(email, "signup")}
                 />
               )}
               {view === "forgot" && (
                 <ForgotPasswordBox
                   goLogin={() => setView("login")}
                   goRegister={() => setView("register")}
-                  goOtp={() => setView("otp")}
+                  goOtp={(email: string) => handleGoToOtp(email, "recovery")}
                 />
               )}
             </div>
