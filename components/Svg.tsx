@@ -3,7 +3,7 @@
 import React from 'react'
 
 export default function Svg() {
-    const preserve = window.innerWidth > 450
+    const preserve = window.innerWidth > 900
         ? "xMidYMid slice"
         : "xMidYMid meet";
     return (
